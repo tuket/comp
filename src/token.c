@@ -1,31 +1,14 @@
+#include "token.h"
+
 #include <stdio.h>
 #include <assert.h>
 
-typedef enum {
-    ETOKEN_NUMBER,
-
-    ETOKEN_PLUS,
-    ETOKEN_MINUS,
-
-    ETOKEN_END,
-
-    ETOKEN_COUNT,
-    ETOKEN_ERROR
-} EToken;
-
-typedef struct {
-    EToken type;
-    int valInt;
-} Token;
-
-typedef int (*TokenizeCallback)(Token, int, void*);
-
-int isNumChar(char c)
+static inline int isNumChar(char c)
 {
     return c >= '0' && c <= '9';
 }
 
-int isTokenOperator(EToken et)
+static inline int isTokenOperator(EToken et)
 {
     return et == ETOKEN_PLUS || et == ETOKEN_MINUS;
 }
@@ -137,7 +120,7 @@ char* syntaxToCCode(const Syntax_Program* syn)
 
 // ----------------------------------------------------------------------------------------------
 
-void printTokenCallback(Token token, int line, void* userData)
+void printTokenTestCallback(Token token, int line, void* userData)
 {
     if(token.type == ETOKEN_NUMBER) {
         printf("number: %d\n", token.valInt);
@@ -156,50 +139,3 @@ void printTokenCallback(Token token, int line, void* userData)
     }
 }
 
-typedef struct SimpleCalculatorData {
-    int currentVal;
-    char operator;
-} SimpleCalculatorData;
-
-int simpleCalculatorCallback(Token token, int line, void* userData)
-{
-    SimpleCalculatorData* data = userData;
-    if(token.type == ETOKEN_NUMBER) {
-        if(data->operator) {
-            if(data->operator == '+')
-                data->currentVal += token.valInt;
-            else if(data->operator == '-')
-                data->currentVal -= token.valInt;
-            data->operator = 0;
-        }
-        else {
-            data->currentVal = token.valInt;
-        }
-    }
-    else if(isTokenOperator(token.type)) {
-        if(data->operator) {
-            printf("error(%d): two operators\n", line);
-            return 0;
-        }
-        if(token.type == ETOKEN_PLUS)
-            data->operator = '+';
-        else if(token.type == ETOKEN_MINUS)
-            data->operator = '-';
-        else
-            assert(0 && "fail in the compiler");
-    }
-    else if(token.type == ETOKEN_END) {
-        printf("result: %d\n", data->currentVal);
-    }
-    return 1;
-}
-
-int main()
-{
-    const char* testStr = "2+2";
-    SimpleCalculatorData calcData = {
-        .currentVal = 0,
-        .operator = 0
-    };
-    tokenize(simpleCalculatorCallback, testStr, &calcData);
-}
