@@ -15,6 +15,6 @@ int main(int argc, char** argv)
         free(str);
     }
     else {
-        printf("ERROR: comp file.c\n");
+        printf("ERROR:\n comp file.c\n");
     }
 }

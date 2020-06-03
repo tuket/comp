@@ -185,7 +185,7 @@ char* getTokenizationString(TokenizationStrings* data, size_t offset)
     return data->buffer + offset + 2;
 }
 
-void testTokenizationStrings()
+void _testTokenizationStrings()
 {
     const char* strs[] = {
         "ab", "bb", "cc", "cc", "aa",
@@ -204,9 +204,4 @@ void testTokenizationStrings()
         if(strcmp(strs[i], str) != 0)
             printf("failed at %d, expected: %s, got: %s\n", i, strs[i], str);
     }
-}
-
-int main()
-{
-    testTokenizationStrings();
 }
