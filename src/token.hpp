@@ -13,7 +13,10 @@ enum class EToken
 	SQUARE_CLOSE,
 	CURLY_OPEN,
 	CURLY_CLOSE,
-	SEMICOLON;
+	COMMA,
+	DOT,
+	COLON,
+	SEMICOLON,
 
 	PLUS, // +
 	PLUS2, // ++
@@ -24,9 +27,10 @@ enum class EToken
 	STAR, // *
 	SLASH, // /
 	EQUAL, // =
-	EQUAL2
+	EQUAL2,
 
 	VAR,
+	FUNC,
 	TYPE_INT,
 	TYPE_FLOAT,
 
@@ -36,25 +40,25 @@ enum class EToken
 
 	IF,
 	ELSE,
+	RETURN,
+	BREAK,
+	CONTINUE,
 
 	IDENTIFIER,
 
+	ERROR,
+
 	END,
 
+	NONE,
 	COUNT
 };
 
 struct Token
 {
 	EToken type;
-	union {
-		int64_t integer;
-		// double lit_real;
-		struct {
-			const char* strBegin;
-			const char* strEnd;
-		};
-	};
+	const char* strBegin;
+	const char* strEnd;
 };
 
 enum class ETokenizeError {
@@ -65,5 +69,7 @@ enum class ETokenizeError {
 typedef bool (*TokenCallback)(const Token&, void*);
 
 void tokenize(const char* str, TokenCallback cb, void* userPtr = nullptr);
+
+void tokenToStr(char* out, int outLen, const Token& t);
 
 }

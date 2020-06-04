@@ -1,19 +1,22 @@
 #include "token.hpp"
-#include "string.h"
-#include "stdio.h"
+#include <string.h>
+#include <stdio.h>
+#include <assert.h>
 
 namespace tkc
 {
 
-inline isEmptyChar(char c)
+inline bool isEmptyChar(char c)
 	{ return c == ' ' || c == '\t' || c == '\n' || c == '\0'; }
-inline isAlpha(char c)
-	{ return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= Z); }
-inline isNum(char c)
+inline bool isAlpha(char c)
+	{ return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'); }
+inline bool isNum(char c)
 	{ return c >= '0' && c <= '9'; }
-inline isAlphaNum(char c)
+inline bool isAlphaNum(char c)
 	{ return isAlpha(c) || isNum(c); }
-inline isIdentifierChar(char c)
+inline bool isAlphaUnd(char c)
+	{ return isAlpha(c) || c == '_'; }
+	inline bool isAlphaNumUnd(char c)
 	{ return isAlphaNum(c) || c == '_'; }
 
 void tokenize(const char* str, TokenCallback cb, void* userPtr)
@@ -25,13 +28,34 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 	int column = 0;
 	int i = 0;
 	auto adv = [&i, &column](int x = 1) { i+= x; column += x; };
-	auto parseIdentifier = [&] {
+	auto parseIdentifier = [&]() {
 		t.type = EToken::IDENTIFIER;
 		t.strBegin = str + i;
-		t.strEnd = str i + 1;
-		while(isIdentifierChar(*t.strEnd))
+		t.strEnd = str + i + 1;
+		while(isAlphaNumUnd(*t.strEnd))
 			t.strEnd++;
-		adv(strEnd - strBegin);
+		adv(t.strEnd - t.strBegin);
+	};
+	auto parseNumericLiteral = [&]() {
+		t.strBegin = str + i;
+		t.strEnd = str + i + 1;
+		while(isNum(*t.strEnd))
+			t.strEnd++;
+		if(*t.strEnd == '.') {
+			while(isNum(*t.strEnd))
+				t.strEnd++;
+			if(isAlphaUnd(*t.strEnd))
+				t.type = EToken::ERROR;
+			else
+				t.type = EToken::LITERAL_REAL;
+		}
+		else if(isAlphaUnd(*t.strEnd)) {
+			t.type = EToken::ERROR;
+		}
+		else {
+			t.type = EToken::LITERAL_INT;
+		}
+		adv(t.strEnd - t.strBegin);
 	};
 	while(i < n)
 	{
@@ -39,18 +63,21 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 		{
 		case ' ':
 		case '\t':
+			t.type = EToken::NONE;
 			adv();
 			break;
 		case '\n':
+			t.type = EToken::NONE;
 			column = 0;
 			line++;
 			i++;
+			break;
 		case '(':
 			t.type = EToken::PARENTH_OPEN;
 			adv();
 			break;
 		case ')':
-			t.type = EToken::PARENTH_CLOSE:
+			t.type = EToken::PARENTH_CLOSE;
 			adv();
 			break;
 		case '[':
@@ -60,13 +87,25 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 		case ']':
 			t.type = EToken::SQUARE_CLOSE;
 			adv();
-			nreak;
+			break;
 		case '{':
 			t.type = EToken::CURLY_OPEN;
 			adv();
 			break;
 		case '}':
 			t.type = EToken::CURLY_CLOSE;
+			adv();
+			break;
+		case ',':
+			t.type = EToken::COMMA;
+			adv();
+			break;
+		case '.':
+			t.type = EToken::DOT;
+			adv();
+			break;
+		case ':':
+			t.type = EToken::COLON;
 			adv();
 			break;
 		case ';':
@@ -79,7 +118,7 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 					t.type = EToken::PLUS2;
 					adv(2);
 				}
-				else if(str[i+1] = '=') {
+				else if(str[i+1] == '=') {
 					t.type = EToken::PLUS_EQUAL;
 					adv(2);
 				}
@@ -99,7 +138,7 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 					t.type = EToken::MINUS2;
 					adv(2);
 				}
-				else if(str[i+1] = '=') {
+				else if(str[i+1] == '=') {
 					t.type = EToken::MINUS_EQUAL;
 					adv(2);
 				}
@@ -123,8 +162,46 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 				adv();
 			}
 			break;
+		case 'b':
+			if(i < n-4 && str[i+1] == 'r' &&
+						  str[i+2] == 'e' &&
+						  str[i+3] == 'a' &&
+						  str[i+4] == 'k' &&
+						  isEmptyChar(str[i+5]))
+			{
+				t.type = EToken::BREAK;
+				adv(5);
+			}
+			else {
+				parseIdentifier();
+			}
+			break;
+		case 'c':
+			if(i < n-7 && str[i+1] == 'o' &&
+						  str[i+2] == 'n' &&
+						  str[i+3] == 't' &&
+						  str[i+4] == 'i' &&
+						  str[i+5] == 'n' &&
+						  str[i+6] == 'u' &&
+						  str[i+7] == 'e' &&
+						  isEmptyChar(str[i+8]))
+			{
+				t.type = EToken::CONTINUE;
+				adv(8);
+			}
+			else {
+				parseIdentifier();
+			}
+			break;
 		case 'i':
-			if(i < n-2 && str[i+1] == 'n' && s[i+2] == 't' && isEmptyChar(s[i+3])) {
+			if(i < n-1 && str[i+1] == 'f' && isEmptyChar(str[i+2])) {
+				t.type = EToken::IF;
+				adv(2);
+			}
+			else if(i < n-2 && str[i+1] == 'n' &&
+							   str[i+2] == 't' &&
+							   isEmptyChar(str[i+3]))
+			{
 				t.type = EToken::TYPE_INT;
 				adv(3);
 			}
@@ -132,8 +209,23 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 				parseIdentifier();
 			}
 			break;
+		case 'f':
+			if(i < n-3 && str[i+1] == 'u' &&
+						  str[i+2] == 'n' &&
+						  str[i+3] == 'c' &&
+						  isEmptyChar(str[i+4]))
+			{
+				t.type = EToken::FUNC;
+				adv(4);
+			}
+			else {
+				parseIdentifier();
+			}
+			break;
 		case 'v':
-			if(i < n-2 && str[i+1] == 'a' && s[i+2] == 'r' && isEmptyChar(s[i+3])) {
+			if(i < n-2 && str[i+1] == 'a' &&
+						  str[i+2] == 'r' &&
+						  isEmptyChar(str[i+3])) {
 				t.type = EToken::VAR;
 				adv(3);
 			}
@@ -141,23 +233,35 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 				parseIdentifier();
 			}
 			break;
-		case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
-		{	int64_t val = str[i] - '0';
-			adv();
-			while(isNum(str[i])) {
-				val *= 10;
-				val += str[i] - '0';
-				adv();
+		case 'r':
+			if(i < n-5 && str[i+1] == 'e' &&
+						  str[i+2] == 't' &&
+						  str[i+3] == 'u' &&
+						  str[i+4] == 'r' &&
+						  str[i+5] == 'n' &&
+						  isEmptyChar(str[i+6]))
+			{
+				t.type = EToken::RETURN;
+				adv(6);
+			}
+			else {
+				parseIdentifier();
 			}
 			break;
-		}
 		default:
-
+			if(isNum(str[i]))
+				parseNumericLiteral();
+			else if(isAlphaUnd(str[i]))
+				parseIdentifier();
+			else
+				assert(false);
 		}
 
-		const bool keepGoing = cb(t, userPtr);
-		if(!keepGoing)
-			break;
+		if(t.type != EToken::NONE) {
+			const bool keepGoing = cb(t, userPtr);
+			if(!keepGoing)
+				break;
+		}
 	}
 	if(startStr) {
 		t.type = EToken::IDENTIFIER;
@@ -172,13 +276,119 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 
 void tokenToStr(char* out, int outLen, const Token& t)
 {
+	auto tokenPrint = [&](const char* type) {
+		snprintf(out, outLen, "%s(%.*s)",
+			type, int(t.strEnd - t.strBegin), t.strBegin);
+	};
+	auto print = [&](const char* str) {
+		snprintf(out, outLen, "%s" ,str);
+	};
 	switch(t.type)
 	{
-	case LITERAL_INT:
-		snprintf(out, outLen, "%" PRId64, t.integer);
+	case EToken::PARENTH_OPEN:
+		print("(");
 		break;
-	case IDENTIFIER:
-		snprintf(out, outLen, "%.*s", t.strEnd - strBegin, strBegin);
+	case EToken::PARENTH_CLOSE:
+		print(")");
+		break;
+	case EToken::SQUARE_OPEN:
+		print("[");
+		break;
+	case EToken::SQUARE_CLOSE:
+		print("]");
+		break;
+	case EToken::CURLY_OPEN:
+		print("{");
+		break;
+	case EToken::CURLY_CLOSE:
+		print("}");
+		break;
+	case EToken::COMMA:
+		print(",");
+		break;
+	case EToken::DOT:
+		print(".");
+		break;
+	case EToken::COLON:
+		print(":");
+		break;
+	case EToken::SEMICOLON:
+		print(";");
+		break;
+	case EToken::PLUS:
+		print("+");
+		break;
+	case EToken::PLUS2:
+		print("++");
+		break;
+	case EToken::PLUS_EQUAL:
+		print("+=");
+		break;
+	case EToken::MINUS:
+		print("-");
+		break;
+	case EToken::MINUS2:
+		print("--");
+		break;
+	case EToken::MINUS_EQUAL:
+		print("-=");
+		break;
+	case EToken::STAR:
+		print("*");
+		break;
+	case EToken::SLASH:
+		print("/");
+		break;
+	case EToken::EQUAL:
+		print("=");
+		break;
+	case EToken::EQUAL2:
+		print("==");
+		break;
+	case EToken::VAR:
+		print("var");
+		break;
+	case EToken::FUNC:
+		print("func");
+		break;
+	case EToken::TYPE_INT:
+		print("int");
+		break;
+	case EToken::TYPE_FLOAT:
+		print("float");
+		break;
+	case EToken::LITERAL_INT:
+		tokenPrint("LITERAL_INT");
+		break;
+	case EToken::LITERAL_REAL:
+		tokenPrint("LITERAL_REAL");
+		break;
+	case EToken::LITERAL_STRING:
+		tokenPrint("LITERAL_STRING");
+		break;
+	case EToken::IF:
+		print("if");
+		break;
+	case EToken::ELSE:
+		print("else");
+		break;
+	case EToken::RETURN:
+		print("return");
+		break;
+	case EToken::BREAK:
+		print("break");
+		break;
+	case EToken::CONTINUE:
+		print("continue");
+		break;
+	case EToken::IDENTIFIER:
+		tokenPrint("IDENTIFIER");
+		break;
+	case EToken::ERROR:
+		print("ERROR");
+		break;
+	case EToken::END:
+		print("END");
 		break;
 	default:
 		snprintf(out, outLen, "[UNKNOWN]");
