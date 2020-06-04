@@ -3,6 +3,9 @@
 namespace tkc
 {
 
-char* loadStringFromfile(const* fileName);
+template <typename T, size_t N>
+constexpr size_t size(T(&)[N]) { return N; }
+
+//char* loadStringFromfile(const* fileName);
 
 }

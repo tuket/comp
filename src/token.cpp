@@ -61,6 +61,9 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 	{
 		switch(str[i])
 		{
+		case '\0':
+			t.type = EToken::END;
+			return;
 		case ' ':
 		case '\t':
 			t.type = EToken::NONE;
@@ -263,15 +266,6 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 				break;
 		}
 	}
-	if(startStr) {
-		t.type = EToken::IDENTIFIER;
-		t.strBegin = startStr;
-		t.strEnd = str + n;
-		cb(t, userPtr);
-	}
-
-	t.type = EToken::END;
-	cb(t, userPtr);
 }
 
 void tokenToStr(char* out, int outLen, const Token& t)
