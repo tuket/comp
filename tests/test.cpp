@@ -15,13 +15,16 @@ func (a int, b float) : float
 }
 )CODE";
 
-struct ExpectedToken
+constexpr tkc::Token makeExpectedToken(tkc::EToken type, const char* str = "")
 {
-	tkc::EToken type;
-	const char* str;
-};
+	tkc::Token t = {};
+	t.type = type;
+	t.strBegin = str;
+	t.strEnd = str + strlen(str);
+	return t;
+}
 
-static bool isSame(tkc::Token t, ExpectedToken e)
+static bool isSame(tkc::Token t, tkc::Token e)
 {
 	if(t.type != e.type)
 		return false;
@@ -31,36 +34,44 @@ static bool isSame(tkc::Token t, ExpectedToken e)
 	   t.type == tkc::EToken::IDENTIFIER)
 	{
 		const int tl = t.strEnd - t.strBegin;
-		const int el = strlen(e.str);
+		const int el = e.strEnd - e.strBegin;
 		if(tl != el)
 			return false;
-		return memcmp(t.strBegin, e.str, tl);
+		return memcmp(t.strBegin, e.strBegin, tl) == 0;
 	}
 	return true;
 }
 
-static const ExpectedToken expected[] = {
-	{tkc::EToken::FUNC},
-	{tkc::EToken::PARENTH_OPEN},
-	{tkc::EToken::IDENTIFIER, "a"},
-	{tkc::EToken::TYPE_INT},
-	{tkc::EToken::COMMA},
-	{tkc::EToken::IDENTIFIER, "b"},
-	{tkc::EToken::TYPE_FLOAT},
-	{tkc::EToken::PARENTH_CLOSE},
-	{tkc::EToken::COLON},
-	{tkc::EToken::TYPE_FLOAT},
-	{tkc::EToken::CURLY_OPEN},
-	{tkc::EToken::RETURN},
-	{tkc::EToken::TYPE_FLOAT},
-	{tkc::EToken::PARENTH_OPEN},
-	{tkc::EToken::IDENTIFIER, "a"},
-	{tkc::EToken::PARENTH_CLOSE},
-	{tkc::EToken::PLUS},
-	{tkc::EToken::IDENTIFIER, "b"},
-	{tkc::EToken::SEMICOLON},
-	{tkc::EToken::CURLY_CLOSE},
-	{tkc::EToken::END}
+static void printExpectedVsGot(tkc::Token e, tkc::Token t)
+{
+	tkc::tokenToStr(buffer, BUFFER_SIZE, e);
+	printf("\texpected: %s\n", buffer);
+	tkc::tokenToStr(buffer, BUFFER_SIZE, t);
+	printf("\tgot:      %s\n", buffer);
+}
+
+static const tkc::Token expected[] = {
+	makeExpectedToken(tkc::EToken::FUNC),
+	makeExpectedToken(tkc::EToken::PARENTH_OPEN),
+	makeExpectedToken(tkc::EToken::IDENTIFIER, "a"),
+	makeExpectedToken(tkc::EToken::TYPE_INT),
+	makeExpectedToken(tkc::EToken::COMMA),
+	makeExpectedToken(tkc::EToken::IDENTIFIER, "b"),
+	makeExpectedToken(tkc::EToken::TYPE_FLOAT),
+	makeExpectedToken(tkc::EToken::PARENTH_CLOSE),
+	makeExpectedToken(tkc::EToken::COLON),
+	makeExpectedToken(tkc::EToken::TYPE_FLOAT),
+	makeExpectedToken(tkc::EToken::CURLY_OPEN),
+	makeExpectedToken(tkc::EToken::RETURN),
+	makeExpectedToken(tkc::EToken::TYPE_FLOAT),
+	makeExpectedToken(tkc::EToken::PARENTH_OPEN),
+	makeExpectedToken(tkc::EToken::IDENTIFIER, "a"),
+	makeExpectedToken(tkc::EToken::PARENTH_CLOSE),
+	makeExpectedToken(tkc::EToken::PLUS),
+	makeExpectedToken(tkc::EToken::IDENTIFIER, "b"),
+	makeExpectedToken(tkc::EToken::SEMICOLON),
+	makeExpectedToken(tkc::EToken::CURLY_CLOSE),
+	makeExpectedToken(tkc::EToken::END)
 };
 
 int main()
@@ -92,13 +103,14 @@ int main()
 				printf("Tokenized test failed because it emitted more tokens than expected\n");
 				return false;
 			}
-			const ExpectedToken& e = expected[i];
+			const tkc::Token& e = expected[i];
 			if(isSame(t, e)) {
 				i++;
+				//printExpectedVsGot(e, t);
 				return true;
 			}
-
 			printf("Tokenizer test failed at token (%d)\n", i);
+			printExpectedVsGot(e, t);
 			return false;
 		}, &i);
 
@@ -107,6 +119,8 @@ int main()
 		}
 		else {
 			printf("Tokenizer test FAILED!\n");
+			printf("\texpected token count: %d\n", int(tkc::size(expected)));
+			printf("\tgot token count:      %d\n", i);
 		}
 	}
 	else {

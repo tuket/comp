@@ -61,9 +61,6 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 	{
 		switch(str[i])
 		{
-		case '\0':
-			t.type = EToken::END;
-			return;
 		case ' ':
 		case '\t':
 			t.type = EToken::NONE;
@@ -170,7 +167,7 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 						  str[i+2] == 'e' &&
 						  str[i+3] == 'a' &&
 						  str[i+4] == 'k' &&
-						  isEmptyChar(str[i+5]))
+						  !isAlphaNumUnd(str[i+5]))
 			{
 				t.type = EToken::BREAK;
 				adv(5);
@@ -187,7 +184,7 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 						  str[i+5] == 'n' &&
 						  str[i+6] == 'u' &&
 						  str[i+7] == 'e' &&
-						  isEmptyChar(str[i+8]))
+						  !isAlphaNumUnd(str[i+8]))
 			{
 				t.type = EToken::CONTINUE;
 				adv(8);
@@ -197,13 +194,13 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 			}
 			break;
 		case 'i':
-			if(i < n-1 && str[i+1] == 'f' && isEmptyChar(str[i+2])) {
+			if(i < n-1 && str[i+1] == 'f' && !isAlphaNumUnd(str[i+2])) {
 				t.type = EToken::IF;
 				adv(2);
 			}
 			else if(i < n-2 && str[i+1] == 'n' &&
 							   str[i+2] == 't' &&
-							   isEmptyChar(str[i+3]))
+							   !isAlphaNumUnd(str[i+3]))
 			{
 				t.type = EToken::TYPE_INT;
 				adv(3);
@@ -216,10 +213,19 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 			if(i < n-3 && str[i+1] == 'u' &&
 						  str[i+2] == 'n' &&
 						  str[i+3] == 'c' &&
-						  isEmptyChar(str[i+4]))
+						  !isAlphaNumUnd(str[i+4]))
 			{
 				t.type = EToken::FUNC;
 				adv(4);
+			}
+			else if(i < n-4 && str[i+1] == 'l' &&
+							   str[i+2] == 'o' &&
+							   str[i+3] == 'a' &&
+							   str[i+4] == 't' &&
+							   !isAlphaNumUnd(str[i+5]))
+			{
+				t.type = EToken::TYPE_FLOAT;
+				adv(5);
 			}
 			else {
 				parseIdentifier();
@@ -228,7 +234,7 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 		case 'v':
 			if(i < n-2 && str[i+1] == 'a' &&
 						  str[i+2] == 'r' &&
-						  isEmptyChar(str[i+3])) {
+						  !isAlphaNumUnd(str[i+3])) {
 				t.type = EToken::VAR;
 				adv(3);
 			}
@@ -242,7 +248,7 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 						  str[i+3] == 'u' &&
 						  str[i+4] == 'r' &&
 						  str[i+5] == 'n' &&
-						  isEmptyChar(str[i+6]))
+						  !isAlphaNumUnd(str[i+6]))
 			{
 				t.type = EToken::RETURN;
 				adv(6);
@@ -263,9 +269,12 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 		if(t.type != EToken::NONE) {
 			const bool keepGoing = cb(t, userPtr);
 			if(!keepGoing)
-				break;
+				return;
 		}
 	}
+
+	t.type = EToken::END;
+	cb(t, userPtr);
 }
 
 void tokenToStr(char* out, int outLen, const Token& t)
