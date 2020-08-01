@@ -7,7 +7,7 @@ namespace tkc
 {
 
 inline bool isEmptyChar(char c)
-	{ return c == ' ' || c == '\t' || c == '\n' || c == '\0'; }
+	{ return c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\0'; }
 inline bool isAlpha(char c)
 	{ return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'); }
 inline bool isNum(char c)
@@ -18,6 +18,12 @@ inline bool isAlphaUnd(char c)
 	{ return isAlpha(c) || c == '_'; }
 	inline bool isAlphaNumUnd(char c)
 	{ return isAlphaNum(c) || c == '_'; }
+
+inline int prefixAdv(const char* str, const char* pref)
+{
+	const int len = strlen(pref);
+	return strncmp(str, pref, len) == 0 ? len : 0;
+}
 
 void tokenize(const char* str, TokenCallback cb, void* userPtr)
 {
@@ -152,6 +158,36 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 				adv();
 			}
 			break;
+		case '/':
+			if(i < n-1 && str[i+1] == '/') {
+				t.type = EToken::COMMENT;
+				adv(2);
+				while(i < n && str[i] != '\n')
+					adv();
+			}
+			else if(i < n-1 && str[i+1] == '*') {
+				t.type = EToken::COMMENT;
+				int lvl = 1;
+				adv(2);
+				while(lvl > 0) {
+					if(strncmp(str+i, "/*", 2) == 0) {
+						lvl++;
+						adv(2);
+					}
+					else if(strncmp(str+1, "*/", 2) == 0) {
+						lvl--;
+						adv(2);
+					}
+					else {
+						adv();
+					}
+				}
+			}
+			else {
+				// TODO
+				adv();
+			}
+			break;
 		case '=':
 			if(i < n-1 && str[i+1] == '=') {
 				t.type = EToken::EQUAL2;
@@ -162,11 +198,81 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 				adv();
 			}
 			break;
+		case '&':
+			if(i < n-2 && str[i+1] == '&' && str[i+2] == '=') {
+				t.type = EToken::AND2_EQUAL;
+				adv(3);
+			}
+			else if(i < n-1 && str[i+1] == '&') {
+				t.type = EToken::AND2;
+				adv(2);
+			}
+			else if(i < n-1 && str[i+1] == '=') {
+				t.type = EToken::AND_EQUAL;
+				adv(2);
+			}
+			else {
+				t.type = EToken::AND;
+				adv();
+			}
+			break;
+		case '|':
+			if(i < n-2 && str[i+1] == '|' && str[i+2] == '=') {
+				t.type = EToken::OR2_EQUAL;
+				adv(3);
+			}
+			else if(i < n-1 && str[i+1] == '|') {
+				t.type = EToken::OR2;
+				adv(2);
+			}
+			else if(i < n-1 && str[i+1] == '=') {
+				t.type = EToken::OR_EQUAL;
+				adv(2);
+			}
+			else {
+				t.type = EToken::OR;
+			}
+			break;
+		case '^':
+			if(i < n-1 && str[i+1] == '=') {
+				t.type = EToken::XOR_EQUAL;
+				adv(2);
+			}
+			else {
+				t.type = EToken::XOR;
+				adv();
+			}
+			break;
+		case '<':
+			if(i < n-1 && str[i+1] == '=') {
+				t.type = EToken::LOWER_OR_EQUAL;
+				adv(2);
+			}
+			else if(i < n-1 && str[i+1] == '<') {
+				t.type = EToken::RIGHT_SHIFT;
+				adv(2);
+			}
+			else {
+				t.type = EToken::LOWER;
+				adv();
+			}
+			break;
+		case '>':
+			if(i < n-1 && str[i+1] == '=') {
+				t.type = EToken::GREATER_OR_EQUAL;
+				adv(2);
+			}
+			else if(i < n-1 && str[i+1] == '>') {
+				t.type = EToken::RIGHT_SHIFT;
+				adv(2);
+			}
+			else {
+				t.type = EToken::GREATER;
+				adv();
+			}
+			break;
 		case 'b':
-			if(i < n-4 && str[i+1] == 'r' &&
-						  str[i+2] == 'e' &&
-						  str[i+3] == 'a' &&
-						  str[i+4] == 'k' &&
+			if(i < n-4 && prefixAdv(str+i+1, "reak") &&
 						  !isAlphaNumUnd(str[i+5]))
 			{
 				t.type = EToken::BREAK;
@@ -177,13 +283,7 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 			}
 			break;
 		case 'c':
-			if(i < n-7 && str[i+1] == 'o' &&
-						  str[i+2] == 'n' &&
-						  str[i+3] == 't' &&
-						  str[i+4] == 'i' &&
-						  str[i+5] == 'n' &&
-						  str[i+6] == 'u' &&
-						  str[i+7] == 'e' &&
+			if(i < n-7 && prefixAdv(str+i+1, "ontinue") &&
 						  !isAlphaNumUnd(str[i+8]))
 			{
 				t.type = EToken::CONTINUE;
@@ -243,11 +343,7 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 			}
 			break;
 		case 'r':
-			if(i < n-5 && str[i+1] == 'e' &&
-						  str[i+2] == 't' &&
-						  str[i+3] == 'u' &&
-						  str[i+4] == 'r' &&
-						  str[i+5] == 'n' &&
+			if(i < n-5 && prefixAdv(str+i+1, "eturn") &&
 						  !isAlphaNumUnd(str[i+6]))
 			{
 				t.type = EToken::RETURN;

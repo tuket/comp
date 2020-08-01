@@ -7,14 +7,6 @@
 constexpr int BUFFER_SIZE = 4*1024;
 static char buffer[BUFFER_SIZE];
 
-const char* str =
-R"CODE(
-func (a int, b float) : float
-{
-	return float(a) + b;
-}
-)CODE";
-
 constexpr tkc::Token makeExpectedToken(tkc::EToken type, const char* str = "")
 {
 	tkc::Token t = {};
@@ -50,7 +42,17 @@ static void printExpectedVsGot(tkc::Token e, tkc::Token t)
 	printf("\tgot:      %s\n", buffer);
 }
 
-static const tkc::Token expected[] = {
+static const char* code_0 = {
+R"CODE(
+func (a int, b float) : float
+{
+	return float(a) + b;
+}
+)CODE"
+};
+
+static const tkc::Token expected_0[] =
+{
 	makeExpectedToken(tkc::EToken::FUNC),
 	makeExpectedToken(tkc::EToken::PARENTH_OPEN),
 	makeExpectedToken(tkc::EToken::IDENTIFIER, "a"),
@@ -74,14 +76,14 @@ static const tkc::Token expected[] = {
 	makeExpectedToken(tkc::EToken::END)
 };
 
-int main()
+static void tokenizationTest(const char* code, tkc::Span<const tkc::Token> expected)
 {
-	enum class WhatToDo { PRINT, TEST };
+	enum class WhatToDo { PRINT = 1, TEST = 2 };
 	constexpr WhatToDo whatToDo = WhatToDo::TEST;
 
 	if(whatToDo == WhatToDo::PRINT)
 	{
-		tkc::tokenize(str,
+		tkc::tokenize(code,
 		[](const tkc::Token& t, void* userData) -> bool
 		{
 			const int numChars = t.strEnd - t.strBegin;
@@ -94,12 +96,17 @@ int main()
 	{
 		int i = 0;
 
-		tkc::tokenize(str,
+		struct UserData {
+			tkc::Span<const tkc::Token> expected;
+			int i;
+		};
+		UserData userData { expected, i };
+		tkc::tokenize(code,
 		[](const tkc::Token& t, void* userData) -> bool
 		{
-			const int n = tkc::size(expected);
-			int& i = *(int*)userData;
-			if(i >= n) {
+			auto& expected = ((UserData*)userData)->expected;
+			int& i = ((UserData*)userData)->i;
+			if(i >= expected.size()) {
 				printf("Tokenized test failed because it emitted more tokens than expected\n");
 				return false;
 			}
@@ -112,18 +119,28 @@ int main()
 			printf("Tokenizer test failed at token (%d)\n", i);
 			printExpectedVsGot(e, t);
 			return false;
-		}, &i);
+		}, &userData);
 
-		if(i == tkc::size(expected)) {
+		if(i == expected.size()) {
 			printf("Tokenizer test passed OK!\n");
 		}
 		else {
 			printf("Tokenizer test FAILED!\n");
-			printf("\texpected token count: %d\n", int(tkc::size(expected)));
+			printf("\texpected token count: %d\n", expected.size());
 			printf("\tgot token count:      %d\n", i);
 		}
 	}
 	else {
 		assert(false);
 	}
+}
+
+void tokenizationTests()
+{
+	tokenizationTest(code_0, expected_0);
+}
+
+int main()
+{
+	tokenizationTests();
 }

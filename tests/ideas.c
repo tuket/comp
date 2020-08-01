@@ -112,3 +112,43 @@ func processFile(fileName CStr)
     }
     file.write(buf[:len(buf)-1]);
 }
+
+struct HashMap (KT type, VT type, alloc: func(uint)->*u8)
+{
+    struct Entry {
+        key KT;
+        val KV;
+    }
+    entries []Entry = null;
+}
+
+func [](m &HashMap(KT, VT), key KT) &VT
+{
+    for entry : m.entries {
+        if entry.key == key {
+            return entry.val;
+        }
+    }
+}
+
+const fn := func (a i8, b i8) -> i8; // this is a type alias
+const fn := func (a i8, b i8) -> i8 { return a + b; } // this is a function pointer
+
+func genFn(x $T) -> T { return x*x; }
+const fn := genFn; // alias function
+const fn_i32 := genFn(T:i32); // function ptr
+
+func genFn(x:$TX, y:$TY) -> $TX { return x+TX(y); }
+const fn := genFn(TX:i32); // partial specialization of types
+const fn_i32_u32 _= genFn(TX:i32, TY:u32);
+
+func add(m &HashMap(KT, VT), key KT, val VT) -> &HashMap(KT, VT)
+{
+    m.entries[]
+}
+
+func testHashMap() {
+    m := HashMap(i32, f32){}
+}
+
+x : &int = 

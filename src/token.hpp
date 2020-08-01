@@ -27,7 +27,23 @@ enum class EToken
 	STAR, // *
 	SLASH, // /
 	EQUAL, // =
-	EQUAL2,
+	EQUAL2, // ==
+	LOWER, // <
+	GREATER, // >
+	LOWER_OR_EQUAL, // <=
+	GREATER_OR_EQUAL, // >=
+	AND, // &
+	AND_EQUAL, // &=
+	AND2, // &&
+	AND2_EQUAL, // &&=
+	OR, // |
+	OR_EQUAL, // |=
+	OR2, // ||
+	OR2_EQUAL, // ||=
+	XOR, // ^
+	XOR_EQUAL, // ^=
+	LEFT_SHIFT, // <<
+	RIGHT_SHIFT, // >>
 
 	VAR,
 	FUNC,
@@ -37,6 +53,7 @@ enum class EToken
 	LITERAL_INT,
 	LITERAL_REAL,
 	LITERAL_STRING,
+	LITERAL_CHAR,
 
 	IF,
 	ELSE,
@@ -45,6 +62,8 @@ enum class EToken
 	CONTINUE,
 
 	IDENTIFIER,
+
+	COMMENT,
 
 	ERROR,
 
