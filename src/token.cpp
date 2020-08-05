@@ -158,6 +158,16 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 				adv();
 			}
 			break;
+		case '*':
+			if(i < n-1 && str[i+1] == '=') {
+				t.type = EToken::STAR_EQUAL;
+				adv(2);
+			}
+			else {
+				t.type = EToken::STAR;
+				adv(1);
+			}
+			break;
 		case '/':
 			if(i < n-1 && str[i+1] == '/') {
 				t.type = EToken::COMMENT;
@@ -183,8 +193,22 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 					}
 				}
 			}
+			else if(i < n-1 && str[i+1] == '=') {
+				t.type = EToken::SLASH_EQUAL;
+				adv(2);
+			}
 			else {
-				// TODO
+				t.type = EToken::SLASH;
+				adv();
+			}
+			break;
+		case '%':
+			if(i < n-1 && str[i+1] == '=') {
+				t.type = EToken::PERCENT_EQUAL;
+				adv(2);
+			}
+			else {
+				t.type = EToken::PERCENT;
 				adv();
 			}
 			break;
@@ -195,6 +219,16 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 			}
 			else {
 				t.type = EToken::EQUAL;
+				adv();
+			}
+			break;
+		case '!':
+			if(i < n-1 && str[i+1] == '=') {
+				t.type = EToken::NOT_EQUAL;
+				adv(2);
+			}
+			else {
+				t.type = EToken::NOT;
 				adv();
 			}
 			break;
@@ -231,6 +265,7 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 			}
 			else {
 				t.type = EToken::OR;
+				adv();
 			}
 			break;
 		case '^':
@@ -244,12 +279,16 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 			}
 			break;
 		case '<':
-			if(i < n-1 && str[i+1] == '=') {
+			if(i < n-2 && str[i+1] == '<' && str[i+2] == '=') {
+				t.type = EToken::LEFT_SHIFT_EQUAL;
+				adv(3);
+			}
+			else if(i < n-1 && str[i+1] == '=') {
 				t.type = EToken::LOWER_OR_EQUAL;
 				adv(2);
 			}
 			else if(i < n-1 && str[i+1] == '<') {
-				t.type = EToken::RIGHT_SHIFT;
+				t.type = EToken::LEFT_SHIFT;
 				adv(2);
 			}
 			else {
@@ -258,7 +297,11 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 			}
 			break;
 		case '>':
-			if(i < n-1 && str[i+1] == '=') {
+			if(i < n-2 && str[i+1] == '>' && str[i+2] == '=') {
+				t.type = EToken::RIGHT_SHIFT_EQUAL;
+				adv(3);
+			}
+			else if(i < n-1 && str[i+1] == '=') {
 				t.type = EToken::GREATER_OR_EQUAL;
 				adv(2);
 			}
@@ -277,6 +320,17 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 			{
 				t.type = EToken::BREAK;
 				adv(5);
+			}
+			else {
+				parseIdentifier();
+			}
+			break;
+		case 'e':
+			if(i < n-3 && prefixAdv(str+i+1, "lse") &&
+						  !isAlphaNumUnd(str[i+4]))
+			{
+				t.type = EToken::ELSE;
+				adv(4);
 			}
 			else {
 				parseIdentifier();
@@ -318,6 +372,13 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 				t.type = EToken::FUNC;
 				adv(4);
 			}
+			else if(i < n-2 && str[i+1] == 'o' &&
+							   str[i+2] == 'r' &&
+							   !isAlphaNumUnd(str[i+3]))
+			{
+				t.type = EToken::FOR;
+				adv(3);
+			}
 			else if(i < n-4 && str[i+1] == 'l' &&
 							   str[i+2] == 'o' &&
 							   str[i+3] == 'a' &&
@@ -326,17 +387,6 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 			{
 				t.type = EToken::TYPE_FLOAT;
 				adv(5);
-			}
-			else {
-				parseIdentifier();
-			}
-			break;
-		case 'v':
-			if(i < n-2 && str[i+1] == 'a' &&
-						  str[i+2] == 'r' &&
-						  !isAlphaNumUnd(str[i+3])) {
-				t.type = EToken::VAR;
-				adv(3);
 			}
 			else {
 				parseIdentifier();
@@ -353,13 +403,37 @@ void tokenize(const char* str, TokenCallback cb, void* userPtr)
 				parseIdentifier();
 			}
 			break;
+		case 'v':
+			if(i < n-2 && str[i+1] == 'a' &&
+						  str[i+2] == 'r' &&
+						  !isAlphaNumUnd(str[i+3])) {
+				t.type = EToken::VAR;
+				adv(3);
+			}
+			else {
+				parseIdentifier();
+			}
+			break;
+		case 'w':
+			if(i < n-4 && prefixAdv(str+i+1, "hile") &&
+				          !isAlphaNumUnd(str[i+5]))
+			{
+				t.type = EToken::WHILE;
+				adv(5);
+			}
+			else {
+				parseIdentifier();
+			}
+			break;
 		default:
 			if(isNum(str[i]))
 				parseNumericLiteral();
 			else if(isAlphaUnd(str[i]))
 				parseIdentifier();
-			else
+			else {
+				//printf("%c\n", str[i]);
 				assert(false);
+			}
 		}
 
 		if(t.type != EToken::NONE) {
@@ -435,8 +509,14 @@ void tokenToStr(char* out, int outLen, const Token& t)
 	case EToken::STAR:
 		print("*");
 		break;
+	case EToken::STAR_EQUAL:
+		print("*=");
+		break;
 	case EToken::SLASH:
 		print("/");
+		break;
+	case EToken::SLASH_EQUAL:
+		print("/=");
 		break;
 	case EToken::EQUAL:
 		print("=");
@@ -444,6 +524,66 @@ void tokenToStr(char* out, int outLen, const Token& t)
 	case EToken::EQUAL2:
 		print("==");
 		break;
+	case EToken::LOWER:
+    	print("<");
+    	break;
+	case EToken::GREATER:
+	    print(">");
+	    break;
+	case EToken::LOWER_OR_EQUAL:
+	    print("<=");
+	    break;
+	case EToken::GREATER_OR_EQUAL:
+	    print(">=");
+	    break;
+	case EToken::NOT:
+	    print("!");
+	    break;
+	case EToken::NOT_EQUAL:
+	    print("!=");
+	    break;
+	case EToken::AND:
+	    print("&");
+	    break;
+	case EToken::AND_EQUAL:
+	    print("&=");
+	    break;
+	case EToken::AND2:
+	    print("&&");
+	    break;
+	case EToken::AND2_EQUAL:
+	    print("&&=");
+	    break;
+	case EToken::OR:
+	    print("|");
+	    break;
+	case EToken::OR_EQUAL:
+	    print("|=");
+	    break;
+	case EToken::OR2:
+	    print("||");
+	    break;
+	case EToken::OR2_EQUAL:
+	    print("||=");
+	    break;
+	case EToken::XOR:
+	    print("^");
+	    break;
+	case EToken::XOR_EQUAL:
+	    print("^=");
+	    break;
+	case EToken::LEFT_SHIFT:
+	    print("<<");
+	    break;
+	case EToken::LEFT_SHIFT_EQUAL:
+	    print("<<=");
+	    break;
+	case EToken::RIGHT_SHIFT:
+	    print(">>");
+	    break;
+	case EToken::RIGHT_SHIFT_EQUAL:
+	    print(">>=");
+	    break;
 	case EToken::VAR:
 		print("var");
 		break;
@@ -471,6 +611,12 @@ void tokenToStr(char* out, int outLen, const Token& t)
 	case EToken::ELSE:
 		print("else");
 		break;
+	case EToken::WHILE:
+		print("while");
+		break;
+	case EToken::FOR:
+		print("for");
+		break;
 	case EToken::RETURN:
 		print("return");
 		break;
@@ -490,7 +636,7 @@ void tokenToStr(char* out, int outLen, const Token& t)
 		print("END");
 		break;
 	default:
-		snprintf(out, outLen, "[UNKNOWN]");
+		snprintf(out, outLen, "[UNKNOWN-%d]", (int)t.type);
 	}
 }
 

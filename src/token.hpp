@@ -25,13 +25,19 @@ enum class EToken
 	MINUS2, // --
 	MINUS_EQUAL, // -=
 	STAR, // *
+	STAR_EQUAL, // *=
 	SLASH, // /
+	SLASH_EQUAL, // /=
+	PERCENT, // %
+	PERCENT_EQUAL, // %=
 	EQUAL, // =
 	EQUAL2, // ==
 	LOWER, // <
 	GREATER, // >
 	LOWER_OR_EQUAL, // <=
 	GREATER_OR_EQUAL, // >=
+	NOT, // !
+	NOT_EQUAL, // !=
 	AND, // &
 	AND_EQUAL, // &=
 	AND2, // &&
@@ -43,7 +49,9 @@ enum class EToken
 	XOR, // ^
 	XOR_EQUAL, // ^=
 	LEFT_SHIFT, // <<
+	LEFT_SHIFT_EQUAL, // <<=
 	RIGHT_SHIFT, // >>
+	RIGHT_SHIFT_EQUAL, // <<=
 
 	VAR,
 	FUNC,
@@ -57,6 +65,8 @@ enum class EToken
 
 	IF,
 	ELSE,
+	WHILE,
+	FOR,
 	RETURN,
 	BREAK,
 	CONTINUE,

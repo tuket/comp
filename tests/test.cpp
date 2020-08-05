@@ -42,14 +42,28 @@ static void printExpectedVsGot(tkc::Token e, tkc::Token t)
 	printf("\tgot:      %s\n", buffer);
 }
 
-static const char* code_0 = {
+static const char* code_0 =
 R"CODE(
 func (a int, b float) : float
 {
 	return float(a) + b;
 }
-)CODE"
-};
+)CODE";
+
+static const char* code_1 =
+R"CODE(
+()[]{}
+,.:;
++ - * / %
+++ --
+! & | << >> ^
+== != && ||
+= += -= *= /= %= &= |= ^= <<= >>= &&= ||=
+< > <= >=
+int float
+if else while for
+break continue return
+)CODE";
 
 static const tkc::Token expected_0[] =
 {
@@ -76,6 +90,64 @@ static const tkc::Token expected_0[] =
 	makeExpectedToken(tkc::EToken::END)
 };
 
+static const tkc::Token expected_1[] =
+{
+	makeExpectedToken(tkc::EToken::PARENTH_OPEN),
+	makeExpectedToken(tkc::EToken::PARENTH_CLOSE),
+	makeExpectedToken(tkc::EToken::SQUARE_OPEN),
+	makeExpectedToken(tkc::EToken::SQUARE_CLOSE),
+	makeExpectedToken(tkc::EToken::CURLY_OPEN),
+	makeExpectedToken(tkc::EToken::CURLY_CLOSE),
+	makeExpectedToken(tkc::EToken::COMMA),
+	makeExpectedToken(tkc::EToken::DOT),
+	makeExpectedToken(tkc::EToken::COLON),
+	makeExpectedToken(tkc::EToken::SEMICOLON),
+	makeExpectedToken(tkc::EToken::PLUS),
+	makeExpectedToken(tkc::EToken::MINUS),
+	makeExpectedToken(tkc::EToken::STAR),
+	makeExpectedToken(tkc::EToken::SLASH),
+	makeExpectedToken(tkc::EToken::PERCENT),
+	makeExpectedToken(tkc::EToken::PLUS2),
+	makeExpectedToken(tkc::EToken::MINUS2),
+	makeExpectedToken(tkc::EToken::NOT),
+	makeExpectedToken(tkc::EToken::AND),
+	makeExpectedToken(tkc::EToken::OR),
+	makeExpectedToken(tkc::EToken::LEFT_SHIFT),
+	makeExpectedToken(tkc::EToken::RIGHT_SHIFT),
+	makeExpectedToken(tkc::EToken::XOR),
+	makeExpectedToken(tkc::EToken::EQUAL2),
+	makeExpectedToken(tkc::EToken::NOT_EQUAL),
+	makeExpectedToken(tkc::EToken::AND2),
+	makeExpectedToken(tkc::EToken::OR2),
+	makeExpectedToken(tkc::EToken::EQUAL),
+	makeExpectedToken(tkc::EToken::PLUS_EQUAL),
+	makeExpectedToken(tkc::EToken::MINUS_EQUAL),
+	makeExpectedToken(tkc::EToken::STAR_EQUAL),
+	makeExpectedToken(tkc::EToken::SLASH_EQUAL),
+	makeExpectedToken(tkc::EToken::PERCENT_EQUAL),
+	makeExpectedToken(tkc::EToken::AND_EQUAL),
+	makeExpectedToken(tkc::EToken::OR_EQUAL),
+	makeExpectedToken(tkc::EToken::XOR_EQUAL),
+	makeExpectedToken(tkc::EToken::LEFT_SHIFT_EQUAL),
+	makeExpectedToken(tkc::EToken::RIGHT_SHIFT_EQUAL),
+	makeExpectedToken(tkc::EToken::AND2_EQUAL),
+	makeExpectedToken(tkc::EToken::OR2_EQUAL),
+	makeExpectedToken(tkc::EToken::LOWER),
+	makeExpectedToken(tkc::EToken::GREATER),
+	makeExpectedToken(tkc::EToken::LOWER_OR_EQUAL),
+	makeExpectedToken(tkc::EToken::GREATER_OR_EQUAL),
+	makeExpectedToken(tkc::EToken::TYPE_INT),
+	makeExpectedToken(tkc::EToken::TYPE_FLOAT),
+	makeExpectedToken(tkc::EToken::IF),
+	makeExpectedToken(tkc::EToken::ELSE),
+	makeExpectedToken(tkc::EToken::WHILE),
+	makeExpectedToken(tkc::EToken::FOR),
+	makeExpectedToken(tkc::EToken::BREAK),
+	makeExpectedToken(tkc::EToken::CONTINUE),
+	makeExpectedToken(tkc::EToken::RETURN),
+	makeExpectedToken(tkc::EToken::END)
+};
+
 static void tokenizationTest(const char* code, tkc::Span<const tkc::Token> expected)
 {
 	enum class WhatToDo { PRINT = 1, TEST = 2 };
@@ -94,13 +166,11 @@ static void tokenizationTest(const char* code, tkc::Span<const tkc::Token> expec
 	}
 	else if(whatToDo == WhatToDo::TEST)
 	{
-		int i = 0;
-
 		struct UserData {
 			tkc::Span<const tkc::Token> expected;
 			int i;
 		};
-		UserData userData { expected, i };
+		UserData userData { expected, 0 };
 		tkc::tokenize(code,
 		[](const tkc::Token& t, void* userData) -> bool
 		{
@@ -108,6 +178,8 @@ static void tokenizationTest(const char* code, tkc::Span<const tkc::Token> expec
 			int& i = ((UserData*)userData)->i;
 			if(i >= expected.size()) {
 				printf("Tokenized test failed because it emitted more tokens than expected\n");
+				tkc::tokenToStr(buffer, BUFFER_SIZE, t);
+				printf("Last token emitted: %s\n", buffer);
 				return false;
 			}
 			const tkc::Token& e = expected[i];
@@ -121,13 +193,13 @@ static void tokenizationTest(const char* code, tkc::Span<const tkc::Token> expec
 			return false;
 		}, &userData);
 
-		if(i == expected.size()) {
+		if(userData.i == expected.size()) {
 			printf("Tokenizer test passed OK!\n");
 		}
 		else {
 			printf("Tokenizer test FAILED!\n");
 			printf("\texpected token count: %d\n", expected.size());
-			printf("\tgot token count:      %d\n", i);
+			printf("\tgot token count:      %d\n", userData.i);
 		}
 	}
 	else {
@@ -137,7 +209,8 @@ static void tokenizationTest(const char* code, tkc::Span<const tkc::Token> expec
 
 void tokenizationTests()
 {
-	tokenizationTest(code_0, expected_0);
+	//tokenizationTest(code_0, expected_0);
+	tokenizationTest(code_1, expected_1);
 }
 
 int main()
